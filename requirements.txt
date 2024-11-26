@@ -1,0 +1,11 @@
+PyQt5==5.15.9
+PyQtWebEngine==5.15.6
+pymongo==4.5.0
+python-dotenv==1.0.0
+bcrypt==4.0.1
+reportlab==4.0.4
+matplotlib==3.7.2
+pandas==2.1.0
+pytest==7.4.2
+Jinja2==3.1.2
+requests==2.31.0
