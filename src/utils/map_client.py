@@ -1,6 +1,6 @@
 """OpenStreetMap integration utility for DisasterConnect."""
 import os
-from typing import Dict
+from typing import Dict, List
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
 from PyQt5.QtCore import QUrl, pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
@@ -14,6 +14,7 @@ class WebEnginePage(QWebEnginePage):
 class WebBridge(QObject):
     locationSelected = pyqtSignal(float, float)
     locationUpdated = pyqtSignal(float, float)
+    searchCompleted = pyqtSignal(list)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,6 +31,13 @@ class WebBridge(QObject):
         """Handle location updates from map"""
         print(f"Location updated in bridge: {lat}, {lng}")
         self.locationUpdated.emit(lat, lng)
+        
+    @pyqtSlot(str, result='QVariant')
+    def onSearchResults(self, results):
+        """Handle search results from map"""
+        results_list = json.loads(results)
+        self.searchCompleted.emit(results_list)
+        return results_list
 
 class MapWidget(QWebEngineView):
     location_selected = pyqtSignal(float, float)
@@ -55,51 +63,84 @@ class MapWidget(QWebEngineView):
         self.init_map()
         
     def init_map(self):
-        """Initialize the map view"""
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        html_path = os.path.join(current_dir, 'map.html')
-        
-        if not os.path.exists(html_path):
-            raise FileNotFoundError(f"Map HTML file not found at {html_path}")
-            
-        self.setUrl(QUrl.fromLocalFile(html_path))
+        """Initialize the map view with enhanced template"""
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            'templates',
+            'map_enhanced.html'
+        )
+        self.load(QUrl.fromLocalFile(template_path))
         self.loadFinished.connect(self.on_load_finished)
-    
+        
     def on_load_finished(self, ok):
         """Handle map load completion"""
         if ok:
             print("Map loaded successfully")
-            if self.selection_mode:
-                self.page().runJavaScript("setSelectionMode(true);")
         else:
             print("Error loading map")
-    
+            
     def on_location_selected(self, lat, lng):
         """Handle location selection"""
         print(f"Location selected: {lat}, {lng}")
         self.location_selected.emit(lat, lng)
-    
+        
     def on_location_updated(self, lat, lng):
         """Handle location updates"""
         print(f"Location updated: {lat}, {lng}")
         self.location_updated.emit(lat, lng)
         
     def add_incident_marker(self, lat: float, lng: float, data: Dict):
-        """Add an incident marker to the map"""
-        js = f"addIncidentMarker({lat}, {lng}, {json.dumps(data)});"
+        """Add an incident marker with heatmap point"""
+        js = f"addIncidentMarker({lat}, {lng}, {json.dumps(data)})"
         self.page().runJavaScript(js)
         
     def add_resource_marker(self, lat: float, lng: float, data: Dict):
         """Add a resource marker to the map"""
-        js = f"addResourceMarker({lat}, {lng}, {json.dumps(data)});"
+        js = f"addResourceMarker({lat}, {lng}, {json.dumps(data)})"
+        self.page().runJavaScript(js)
+        
+    def add_alert_marker(self, lat: float, lng: float, data: Dict):
+        """Add an alert marker to the map"""
+        js = f"addAlertMarker({lat}, {lng}, {json.dumps(data)})"
+        self.page().runJavaScript(js)
+        
+    def add_cluster_markers(self, markers: List[Dict]):
+        """Add clustered markers to the map"""
+        js = f"addClusterMarkers({json.dumps(markers)})"
+        self.page().runJavaScript(js)
+        
+    def update_alert_radius(self, lat: float, lng: float, radius: float, data: Dict):
+        """Update alert radius circle on the map"""
+        js = f"updateAlertRadius({lat}, {lng}, {radius}, {json.dumps(data)})"
         self.page().runJavaScript(js)
         
     def clear_markers(self):
-        """Clear all markers from the map"""
-        self.page().runJavaScript("clearMarkers();")
+        """Clear all markers and heatmap from the map"""
+        self.page().runJavaScript("clearMarkers()")
+        
+    def clear_alerts(self):
+        """Clear all alert markers and radius circles"""
+        self.page().runJavaScript("clearAlerts()")
+        
+    def update_heatmap(self, points: List[Dict]):
+        """Update heatmap with new points"""
+        js = f"updateHeatmap({json.dumps(points)})"
+        self.page().runJavaScript(js)
+        
+    def set_view(self, lat: float, lng: float, zoom: int = 13):
+        """Set the map view to specific coordinates"""
+        js = f"map.setView([{lat}, {lng}], {zoom})"
+        self.page().runJavaScript(js)
+        
+    def toggle_clustering(self, enabled: bool):
+        """Toggle marker clustering on/off"""
+        js = f"toggleClustering({str(enabled).lower()})"
+        self.page().runJavaScript(js)
 
 class MapClient:
-    def create_map_widget(self, selection_mode=False):
+    """Singleton map client for creating map widgets"""
+    
+    def create_map_widget(self, selection_mode=False) -> MapWidget:
         """Create a new map widget"""
         return MapWidget(selection_mode=selection_mode)
 
