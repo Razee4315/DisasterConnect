@@ -1,129 +1,102 @@
 import os
 import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 from pymongo.errors import ConnectionFailure
-from src.utils.mongodb_client import MongoDBClient
+from bson import ObjectId
+from src.utils.mongodb_client import MongoDBClient, get_mongodb_client
 
 @pytest.fixture(autouse=True)
-def setup_environment():
-    """Set up environment variables for testing."""
-    os.environ['MONGODB_URI'] = 'mongodb://localhost:27017'
-    os.environ['MONGODB_DATABASE'] = 'test_db'
-    yield
-    # Clean up
-    os.environ.pop('MONGODB_URI', None)
-    os.environ.pop('MONGODB_DATABASE', None)
+def mock_env_vars():
+    """Mock environment variables for all tests."""
+    with patch.dict(os.environ, {
+        'MONGODB_URI': 'mongodb://localhost:27017',
+        'MONGODB_DATABASE': 'test_db'
+    }):
+        yield
 
-@pytest.fixture(autouse=True)
-def reset_singleton():
-    """Reset the MongoDB client singleton between tests."""
-    MongoDBClient._instance = None
-    MongoDBClient._client = None
-    MongoDBClient._db = None
-    yield
+@pytest.fixture
+def mongodb_client():
+    """Get a MongoDB client instance."""
+    client = get_mongodb_client()
+    client._client = None
+    client._db = None
+    client.initialized = False
+    return client
 
-@patch('src.utils.mongodb_client.MongoClient')
-def test_successful_connection(mock_mongo_client):
-    """Test successful MongoDB connection."""
-    # Setup mock
-    mock_client = MagicMock()
-    mock_client.admin.command.return_value = True
-    mock_mongo_client.return_value = mock_client
+@pytest.fixture
+def mock_mongo_client():
+    """Create mock MongoDB client."""
+    with patch('src.utils.mongodb_client.MongoClient') as mock_client:
+        client_instance = MagicMock()
+        db = MagicMock()
+        collection = MagicMock()
+        
+        # Setup mock chain
+        mock_client.return_value = client_instance
+        client_instance.__getitem__.return_value = db
+        db.__getitem__.return_value = collection
+        client_instance.admin.command.return_value = True
+        
+        return {
+            'client': mock_client,
+            'client_instance': client_instance,
+            'db': db,
+            'collection': collection
+        }
 
-    # Initialize client
-    client = MongoDBClient()
-    client.initialize_connection()
+def test_singleton_pattern():
+    """Test that MongoDBClient follows singleton pattern."""
+    client1 = get_mongodb_client()
+    client2 = get_mongodb_client()
+    assert client1 is client2
 
-    # Verify
-    mock_mongo_client.assert_called_once_with('mongodb://localhost:27017')
-    mock_client.admin.command.assert_called_once_with('ping')
-    assert client.initialized is True
+def test_lazy_initialization(mongodb_client):
+    """Test that connection is initialized only when needed."""
+    assert mongodb_client._client is None
+    assert mongodb_client._db is None
 
-@patch('src.utils.mongodb_client.MongoClient')
-def test_insert_one(mock_mongo_client):
-    """Test insert_one operation."""
-    # Setup mock
-    mock_client = MagicMock()
-    mock_db = MagicMock()
-    mock_collection = MagicMock()
-    
-    mock_client.admin.command.return_value = True
-    mock_client.__getitem__.return_value = mock_db
-    mock_db.__getitem__.return_value = mock_collection
-    mock_collection.insert_one.return_value.inserted_id = 'test_id'
-    
-    mock_mongo_client.return_value = mock_client
+def test_successful_connection(mongodb_client, mock_mongo_client):
+    """Test successful database connection."""
+    mongodb_client.initialize_connection()
+    mock_mongo_client['client'].assert_called_once_with('mongodb://localhost:27017')
+    mock_mongo_client['client_instance'].admin.command.assert_called_once_with('ping')
+    assert mongodb_client.initialized is True
 
-    # Perform insert
-    client = MongoDBClient()
-    result = client.insert_one('test_collection', {'test': 'data'})
+def test_insert_one(mongodb_client, mock_mongo_client):
+    """Test inserting a single document."""
+    test_doc = {"name": "test"}
+    collection = mock_mongo_client['collection']
+    collection.insert_one.return_value.inserted_id = "test_id"
 
-    # Verify
-    mock_collection.insert_one.assert_called_once_with({'test': 'data'})
-    assert result == 'test_id'
+    result = mongodb_client.insert_one("test_collection", test_doc)
+    collection.insert_one.assert_called_once_with(test_doc)
+    assert result == "test_id"
 
-@patch('src.utils.mongodb_client.MongoClient')
-def test_find_one(mock_mongo_client):
-    """Test find_one operation."""
-    # Setup mock
-    mock_client = MagicMock()
-    mock_db = MagicMock()
-    mock_collection = MagicMock()
-    
-    mock_client.admin.command.return_value = True
-    mock_client.__getitem__.return_value = mock_db
-    mock_db.__getitem__.return_value = mock_collection
-    mock_collection.find_one.return_value = {'test': 'data'}
-    
-    mock_mongo_client.return_value = mock_client
+def test_find_one(mongodb_client, mock_mongo_client):
+    """Test finding a single document."""
+    test_query = {"name": "test"}
+    expected_doc = {"_id": "test_id", "name": "test"}
+    collection = mock_mongo_client['collection']
+    collection.find_one.return_value = expected_doc
 
-    # Perform find
-    client = MongoDBClient()
-    result = client.find_one('test_collection', {'test': 'data'})
+    result = mongodb_client.find_one("test_collection", test_query)
+    collection.find_one.assert_called_once_with(test_query)
+    assert result == expected_doc
 
-    # Verify
-    mock_collection.find_one.assert_called_once_with({'test': 'data'})
-    assert result == {'test': 'data'}
-
-@patch('src.utils.mongodb_client.MongoClient')
 def test_connection_error(mock_mongo_client):
-    """Test connection error handling."""
-    # Setup mock to raise ConnectionFailure
-    mock_mongo_client.side_effect = ConnectionFailure("Connection failed")
+    """Test handling of connection errors."""
+    mock_mongo_client['client'].side_effect = ConnectionFailure("Connection failed")
+    client = get_mongodb_client()
+    client._client = None
 
-    # Initialize client
-    client = MongoDBClient()
-
-    # Verify that connection error is raised
     with pytest.raises(Exception) as exc_info:
         client.initialize_connection()
     assert "Failed to connect to MongoDB: Connection failed" in str(exc_info.value)
 
-@patch('src.utils.mongodb_client.MongoClient')
-def test_singleton_pattern(mock_mongo_client):
-    """Test that MongoDBClient follows singleton pattern."""
-    # Setup mock
-    mock_client = MagicMock()
-    mock_mongo_client.return_value = mock_client
-    mock_client.admin.command.return_value = True
-
-    # Create two instances
-    client1 = MongoDBClient()
-    client2 = MongoDBClient()
-
-    # Verify they are the same instance
-    assert client1 is client2
-
 def test_missing_env_vars():
     """Test handling of missing environment variables."""
-    # Remove environment variables
-    os.environ.pop('MONGODB_URI', None)
-    os.environ.pop('MONGODB_DATABASE', None)
-
-    # Initialize client
-    client = MongoDBClient()
-
-    # Verify that ValueError is raised
-    with pytest.raises(ValueError) as exc_info:
-        client.initialize_connection()
-    assert "MongoDB connection details not found in environment variables" in str(exc_info.value)
+    with patch.dict(os.environ, {}, clear=True):
+        client = get_mongodb_client()
+        with pytest.raises(ValueError) as exc_info:
+            client.initialize_connection()
+        assert "MongoDB connection details not found in environment variables" in str(exc_info.value)

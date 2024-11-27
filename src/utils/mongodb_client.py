@@ -20,18 +20,6 @@ class MongoDBClient:
         if not hasattr(self, 'initialized'):
             self.initialized = False
 
-    @property
-    def client(self):
-        if not self._client:
-            self.initialize_connection()
-        return self._client
-
-    @property
-    def db(self):
-        if not self._db:
-            self.initialize_connection()
-        return self._db
-
     def initialize_connection(self) -> None:
         """Initialize MongoDB connection using environment variables."""
         if self._client is not None:
@@ -121,6 +109,18 @@ class MongoDBClient:
             self._client = None
             self._db = None
             self.initialized = False
+
+    @property
+    def client(self):
+        if not self._client:
+            self.initialize_connection()
+        return self._client
+
+    @property
+    def db(self):
+        if not self._db:
+            self.initialize_connection()
+        return self._db
 
 def get_mongodb_client() -> MongoDBClient:
     """Get the MongoDB client instance."""
