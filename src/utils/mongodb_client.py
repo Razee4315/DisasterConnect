@@ -7,25 +7,34 @@ from pymongo.errors import ConnectionFailure
 
 class MongoDBClient:
     _instance = None
+    _client = None
+    _db = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(MongoDBClient, cls).__new__(cls)
             cls._instance.initialized = False
-            cls._instance.client = None
-            cls._instance.db = None
         return cls._instance
 
     def __init__(self):
-        if self.initialized:
-            return
-        self.initialized = True
-        self.client = None
-        self.db = None
+        if not hasattr(self, 'initialized'):
+            self.initialized = False
+
+    @property
+    def client(self):
+        if not self._client:
+            self.initialize_connection()
+        return self._client
+
+    @property
+    def db(self):
+        if not self._db:
+            self.initialize_connection()
+        return self._db
 
     def initialize_connection(self) -> None:
         """Initialize MongoDB connection using environment variables."""
-        if self.client is not None:
+        if self._client is not None:
             return
 
         mongodb_uri = os.getenv('MONGODB_URI')
@@ -36,27 +45,28 @@ class MongoDBClient:
 
         try:
             # Create MongoDB client
-            self.client = MongoClient(mongodb_uri)
+            self._client = MongoClient(mongodb_uri)
             
             # Test connection with ping command
-            self.client.admin.command('ping')
+            self._client.admin.command('ping')
             
             # Set database after successful connection test
-            self.db = self.client[database_name]
+            self._db = self._client[database_name]
+            self.initialized = True
         except ConnectionFailure as e:
-            self.client = None
-            self.db = None
+            self._client = None
+            self._db = None
             raise Exception(f"Failed to connect to MongoDB: Connection failed - {str(e)}")
         except Exception as e:
-            self.client = None
-            self.db = None
+            self._client = None
+            self._db = None
             raise Exception(f"Failed to connect to MongoDB: {str(e)}")
 
     def get_collection(self, collection_name: str) -> Collection:
         """Get a MongoDB collection."""
-        if not self.client or not self.db:
+        if not self._client or not self._db:
             self.initialize_connection()
-        return self.db[collection_name]
+        return self._db[collection_name]
 
     def insert_one(self, collection_name: str, document: Dict[str, Any]) -> str:
         """Insert a single document into a collection."""
@@ -106,10 +116,11 @@ class MongoDBClient:
 
     def close(self) -> None:
         """Close the MongoDB connection."""
-        if self.client:
-            self.client.close()
-            self.client = None
-            self.db = None
+        if self._client:
+            self._client.close()
+            self._client = None
+            self._db = None
+            self.initialized = False
 
 def get_mongodb_client() -> MongoDBClient:
     """Get the MongoDB client instance."""
