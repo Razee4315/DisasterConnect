@@ -15,7 +15,7 @@ def mock_env_vars():
 @pytest.fixture
 def mock_mongo_client():
     """Mock PyMongo client."""
-    with patch('pymongo.MongoClient') as mock_client:
+    with patch('src.utils.mongodb_client.MongoClient') as mock_client:
         # Create mock instances
         client_instance = MagicMock()
         db_instance = MagicMock()
@@ -34,7 +34,7 @@ def mock_mongo_client():
         }
 
 @pytest.fixture
-def mongodb_client():
+def mongodb_client(mock_mongo_client):
     """Create a fresh MongoDB client instance for each test."""
     client = get_mongodb_client()
     client.client = None
@@ -57,8 +57,8 @@ def test_successful_connection(mongodb_client, mock_mongo_client):
     """Test successful database connection."""
     mongodb_client.initialize_connection()
     mock_mongo_client['client'].assert_called_once_with('mongodb://localhost:27017')
-    assert mongodb_client.client is not None
-    assert mongodb_client.db is not None
+    assert mongodb_client.client is mock_mongo_client['client_instance']
+    assert mongodb_client.db is mock_mongo_client['db']
 
 def test_insert_one(mongodb_client, mock_mongo_client):
     """Test inserting a single document."""
@@ -66,6 +66,7 @@ def test_insert_one(mongodb_client, mock_mongo_client):
     collection = mock_mongo_client['collection']
     collection.insert_one.return_value.inserted_id = "test_id"
 
+    mongodb_client.initialize_connection()
     result = mongodb_client.insert_one("test_collection", test_doc)
     collection.insert_one.assert_called_once_with(test_doc)
     assert result == "test_id"
@@ -77,6 +78,7 @@ def test_find_one(mongodb_client, mock_mongo_client):
     collection = mock_mongo_client['collection']
     collection.find_one.return_value = expected_doc
 
+    mongodb_client.initialize_connection()
     result = mongodb_client.find_one("test_collection", test_query)
     collection.find_one.assert_called_once_with(test_query)
     assert result == expected_doc

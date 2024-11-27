@@ -19,6 +19,8 @@ class MongoDBClient:
         if hasattr(self, 'initialized'):
             return
         self.initialized = True
+        self.client = None
+        self.db = None
 
     def initialize_connection(self) -> None:
         """Initialize MongoDB connection using environment variables."""
@@ -34,6 +36,8 @@ class MongoDBClient:
         try:
             self.client = MongoClient(mongodb_uri)
             self.db = self.client[database_name]
+            # Test the connection
+            self.client.admin.command('ping')
         except Exception as e:
             self.client = None
             self.db = None
