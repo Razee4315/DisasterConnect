@@ -10,16 +10,21 @@ class MongoDBClient:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(MongoDBClient, cls).__new__(cls)
+            cls._instance.client = None
+            cls._instance.db = None
         return cls._instance
 
     def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self.client: Optional[MongoClient] = None
-            self.db: Optional[Database] = None
-            self.initialized = True
+        # Skip initialization if already done
+        if hasattr(self, 'initialized'):
+            return
+        self.initialized = True
 
     def initialize_connection(self) -> None:
         """Initialize MongoDB connection using environment variables."""
+        if self.client is not None:
+            return
+
         mongodb_uri = os.getenv('MONGODB_URI')
         database_name = os.getenv('MONGODB_DATABASE')
 
@@ -30,11 +35,13 @@ class MongoDBClient:
             self.client = MongoClient(mongodb_uri)
             self.db = self.client[database_name]
         except Exception as e:
+            self.client = None
+            self.db = None
             raise Exception(f"Failed to connect to MongoDB: {str(e)}")
 
     def get_collection(self, collection_name: str) -> Collection:
         """Get a MongoDB collection."""
-        if not self.db:
+        if not self.client or not self.db:
             self.initialize_connection()
         return self.db[collection_name]
 
@@ -91,6 +98,6 @@ class MongoDBClient:
             self.client = None
             self.db = None
 
-# Create a singleton instance
 def get_mongodb_client() -> MongoDBClient:
+    """Get the MongoDB client instance."""
     return MongoDBClient()

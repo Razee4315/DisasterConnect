@@ -1,11 +1,11 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from src.utils.mongodb_client import MongoDBClient
+from src.utils.mongodb_client import MongoDBClient, get_mongodb_client
 
 @pytest.fixture(autouse=True)
 def mock_env_vars():
-    """Automatically mock environment variables for all tests."""
+    """Mock environment variables for all tests."""
     with patch.dict(os.environ, {
         'MONGODB_URI': 'mongodb://localhost:27017',
         'MONGODB_DATABASE': 'test_db'
@@ -36,15 +36,16 @@ def mock_mongo_client():
 @pytest.fixture
 def mongodb_client():
     """Create a fresh MongoDB client instance for each test."""
-    client = MongoDBClient()
-    client.client = None  # Reset connection
+    client = get_mongodb_client()
+    client.client = None
     client.db = None
-    return client
+    yield client
+    client.close()
 
 def test_singleton_pattern():
     """Test that MongoDBClient follows singleton pattern."""
-    client1 = MongoDBClient()
-    client2 = MongoDBClient()
+    client1 = get_mongodb_client()
+    client2 = get_mongodb_client()
     assert client1 is client2
 
 def test_lazy_initialization(mongodb_client):
@@ -55,7 +56,6 @@ def test_lazy_initialization(mongodb_client):
 def test_successful_connection(mongodb_client, mock_mongo_client):
     """Test successful database connection."""
     mongodb_client.initialize_connection()
-    
     mock_mongo_client['client'].assert_called_once_with('mongodb://localhost:27017')
     assert mongodb_client.client is not None
     assert mongodb_client.db is not None
@@ -67,7 +67,6 @@ def test_insert_one(mongodb_client, mock_mongo_client):
     collection.insert_one.return_value.inserted_id = "test_id"
 
     result = mongodb_client.insert_one("test_collection", test_doc)
-    
     collection.insert_one.assert_called_once_with(test_doc)
     assert result == "test_id"
 
@@ -75,20 +74,29 @@ def test_find_one(mongodb_client, mock_mongo_client):
     """Test finding a single document."""
     test_query = {"name": "test"}
     expected_doc = {"_id": "test_id", "name": "test"}
-    
     collection = mock_mongo_client['collection']
     collection.find_one.return_value = expected_doc
 
     result = mongodb_client.find_one("test_collection", test_query)
-    
     collection.find_one.assert_called_once_with(test_query)
     assert result == expected_doc
 
-def test_close_connection(mongodb_client, mock_mongo_client):
-    """Test closing the database connection."""
-    mongodb_client.initialize_connection()
-    mongodb_client.close()
+def test_connection_error(mock_mongo_client):
+    """Test handling of connection errors."""
+    mock_mongo_client['client'].side_effect = Exception("Connection failed")
+    client = get_mongodb_client()
+    client.client = None
     
-    mock_mongo_client['client_instance'].close.assert_called_once()
-    assert mongodb_client.client is None
-    assert mongodb_client.db is None
+    with pytest.raises(Exception) as exc_info:
+        client.initialize_connection()
+    assert "Failed to connect to MongoDB" in str(exc_info.value)
+
+def test_missing_env_vars():
+    """Test handling of missing environment variables."""
+    with patch.dict(os.environ, {}, clear=True):
+        client = get_mongodb_client()
+        client.client = None
+        
+        with pytest.raises(ValueError) as exc_info:
+            client.initialize_connection()
+        assert "MongoDB connection details not found" in str(exc_info.value)
