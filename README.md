@@ -87,8 +87,7 @@ Here are some snapshots of our DisasterConnect interface:
 ![Screenshot 3](docs/screenshots/3.png)
 ![Screenshot 4](docs/screenshots/4.png)
 ![Screenshot 5](docs/screenshots/5.png)
-![Screenshot 6](docs/screenshots/6.png)
-![Screenshot 7](docs/screenshots/7.png)
+
 
 *These screenshots showcase various interfaces of our disaster response coordination platform.*
 
