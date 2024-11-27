@@ -21,13 +21,17 @@ Follow the installation steps in the [README.md](../README.md).
 2. Create an account or log in
 3. Complete your profile setup
 
-## Dashboard Overview
+### Logging In
+![Login Interface](screenshots/1.png)
+To access DisasterConnect, use your provided credentials at the login screen. The system supports role-based access control, ensuring users have appropriate permissions for their responsibilities.
 
-The dashboard provides a quick overview of:
+## Dashboard Overview
+![Dashboard Overview](screenshots/2.png)
+The dashboard provides a comprehensive view of current situations, including:
 - Active incidents
 - Available resources
-- Recent communications
-- Task status
+- Recent updates
+- Key metrics and statistics
 
 ### Navigation
 - Use the sidebar menu to access different sections
@@ -56,6 +60,15 @@ The dashboard provides a quick overview of:
 - View timeline
 - Check resource allocation
 
+## Managing Incidents
+![Incident Management](screenshots/3.png)
+The incident management interface allows you to:
+- Create new incident reports
+- Update incident status
+- Assign priority levels
+- Track response progress
+- Add comments and updates
+
 ## Resource Management
 
 ### Adding Resources
@@ -74,6 +87,24 @@ The dashboard provides a quick overview of:
 - Monitor availability
 - Schedule maintenance
 
+## Resource Management
+![Resource Management](screenshots/4.png)
+Efficiently manage and track resources:
+- View available resources
+- Allocate resources to incidents
+- Track resource deployment
+- Monitor resource status
+- Generate resource reports
+
+## Map Visualization
+![Map Interface](screenshots/5.png)
+The interactive map provides:
+- Real-time incident locations
+- Resource distribution visualization
+- Geographic analysis tools
+- Route planning capabilities
+- Area impact assessment
+
 ## Communication System
 
 ### Sending Messages
@@ -88,6 +119,15 @@ The dashboard provides a quick overview of:
 - Resource coordination
 - Emergency broadcast
 
+## Communication System
+![Communication Hub](screenshots/6.png)
+Stay connected with team members:
+- Real-time messaging
+- Team coordination
+- File sharing
+- Status updates
+- Alert notifications
+
 ## Reports and Analytics
 
 ### Generating Reports
@@ -101,6 +141,15 @@ The dashboard provides a quick overview of:
 - Resource utilization
 - Response time analytics
 - Team performance
+
+## Analytics and Reporting
+![Analytics Dashboard](screenshots/7.png)
+Generate insights with our analytics tools:
+- Custom report generation
+- Data visualization
+- Trend analysis
+- Performance metrics
+- Response time analytics
 
 ## Troubleshooting
 

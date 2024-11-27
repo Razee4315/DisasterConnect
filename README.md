@@ -78,6 +78,38 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 We take security seriously. If you discover any security-related issues, please follow our [Security Policy](SECURITY.md).
 
+## 📸 Interface Screenshots
+
+Here's a visual tour of DisasterConnect's key features:
+
+### 1. Login Interface
+![Login Screen](docs/screenshots/1.png)
+*Secure authentication portal with role-based access control.*
+
+### 2. Dashboard Overview
+![Dashboard](docs/screenshots/2.png)
+*Comprehensive dashboard providing real-time insights and critical information at a glance.*
+
+### 3. Incident Management
+![Incident Management](docs/screenshots/3.png)
+*Efficient incident tracking and management interface with priority indicators.*
+
+### 4. Resource Allocation
+![Resource Management](docs/screenshots/4.png)
+*Resource tracking and allocation system for optimal distribution of emergency resources.*
+
+### 5. Map Visualization
+![Map View](docs/screenshots/5.png)
+*Interactive map interface showing incident locations and resource distribution.*
+
+### 6. Communication Hub
+![Communication Interface](docs/screenshots/6.png)
+*Real-time communication platform for coordinating response efforts.*
+
+### 7. Analytics Dashboard
+![Analytics](docs/screenshots/7.png)
+*Advanced analytics and reporting tools for data-driven decision making.*
+
 ## 💬 Community and Support
 
 - 📫 Contact: saqlainrazee@gmail.com
