@@ -78,37 +78,19 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 We take security seriously. If you discover any security-related issues, please follow our [Security Policy](SECURITY.md).
 
-## 📸 Interface Screenshots
+## 📸 Project Screenshots
 
-Here's a visual tour of DisasterConnect's key features:
+Here are some snapshots of our DisasterConnect interface:
 
-### 1. Login Interface
-![Login Screen](docs/screenshots/1.png)
-*Secure authentication portal with role-based access control.*
+![Screenshot 1](docs/screenshots/1.png)
+![Screenshot 2](docs/screenshots/2.png)
+![Screenshot 3](docs/screenshots/3.png)
+![Screenshot 4](docs/screenshots/4.png)
+![Screenshot 5](docs/screenshots/5.png)
+![Screenshot 6](docs/screenshots/6.png)
+![Screenshot 7](docs/screenshots/7.png)
 
-### 2. Dashboard Overview
-![Dashboard](docs/screenshots/2.png)
-*Comprehensive dashboard providing real-time insights and critical information at a glance.*
-
-### 3. Incident Management
-![Incident Management](docs/screenshots/3.png)
-*Efficient incident tracking and management interface with priority indicators.*
-
-### 4. Resource Allocation
-![Resource Management](docs/screenshots/4.png)
-*Resource tracking and allocation system for optimal distribution of emergency resources.*
-
-### 5. Map Visualization
-![Map View](docs/screenshots/5.png)
-*Interactive map interface showing incident locations and resource distribution.*
-
-### 6. Communication Hub
-![Communication Interface](docs/screenshots/6.png)
-*Real-time communication platform for coordinating response efforts.*
-
-### 7. Analytics Dashboard
-![Analytics](docs/screenshots/7.png)
-*Advanced analytics and reporting tools for data-driven decision making.*
+*These screenshots showcase various interfaces of our disaster response coordination platform.*
 
 ## 💬 Community and Support
 
