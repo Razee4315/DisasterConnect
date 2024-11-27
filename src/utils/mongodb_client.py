@@ -11,13 +11,13 @@ class MongoDBClient:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(MongoDBClient, cls).__new__(cls)
+            cls._instance.initialized = False
             cls._instance.client = None
             cls._instance.db = None
         return cls._instance
 
     def __init__(self):
-        # Skip initialization if already done
-        if hasattr(self, 'initialized'):
+        if self.initialized:
             return
         self.initialized = True
         self.client = None
@@ -46,11 +46,11 @@ class MongoDBClient:
         except ConnectionFailure as e:
             self.client = None
             self.db = None
-            raise Exception(f"Failed to connect to MongoDB: {str(e)}")
+            raise Exception(f"Failed to connect to MongoDB: Connection failed - {str(e)}")
         except Exception as e:
             self.client = None
             self.db = None
-            raise Exception(f"An error occurred: {str(e)}")
+            raise Exception(f"Failed to connect to MongoDB: {str(e)}")
 
     def get_collection(self, collection_name: str) -> Collection:
         """Get a MongoDB collection."""
