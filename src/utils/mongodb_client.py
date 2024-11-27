@@ -1,12 +1,8 @@
 import os
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from pymongo import MongoClient
+from pymongo.collection import Collection
 from pymongo.database import Database
-from pymongo.errors import PyMongoError
-import logging
-from dotenv import load_dotenv
-
-logger = logging.getLogger(__name__)
 
 class MongoDBClient:
     _instance = None
@@ -14,86 +10,87 @@ class MongoDBClient:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(MongoDBClient, cls).__new__(cls)
-            cls._instance.client = None
-            cls._instance.db = None
         return cls._instance
 
     def __init__(self):
-        if self.client is None:
-            self.initialize_connection()
+        if not hasattr(self, 'initialized'):
+            self.client: Optional[MongoClient] = None
+            self.db: Optional[Database] = None
+            self.initialized = True
 
-    def initialize_connection(self):
+    def initialize_connection(self) -> None:
         """Initialize MongoDB connection using environment variables."""
+        mongodb_uri = os.getenv('MONGODB_URI')
+        database_name = os.getenv('MONGODB_DATABASE')
+
+        if not mongodb_uri or not database_name:
+            raise ValueError("MongoDB connection details not found in environment variables")
+
         try:
-            # Load environment variables
-            load_dotenv()
-            
-            # Get MongoDB connection details from environment
-            mongodb_uri = os.getenv('MONGODB_URI')
-            database_name = os.getenv('MONGODB_DATABASE')
-
-            logger.info(f"Connecting to MongoDB at: {mongodb_uri}")
-            logger.info(f"Using database: {database_name}")
-
-            if not mongodb_uri or not database_name:
-                raise ValueError("MongoDB connection details not found in environment variables")
-
-            # Create MongoDB client
             self.client = MongoClient(mongodb_uri)
             self.db = self.client[database_name]
-
-            # Test connection
-            self.client.admin.command('ping')
-            
-            # Create indexes
-            self._setup_indexes()
-            
-            logger.info("Successfully connected to MongoDB")
         except Exception as e:
-            logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            self.client = None
-            self.db = None
-            raise
+            raise Exception(f"Failed to connect to MongoDB: {str(e)}")
 
-    def _setup_indexes(self):
-        """Setup necessary indexes for collections."""
-        try:
-            # Users collection indexes
-            self.db.users.create_index("username", unique=True)
-            self.db.users.create_index("email", unique=True)
-
-            # Incidents collection indexes
-            self.db.incidents.create_index([("location", "2dsphere")])
-            self.db.incidents.create_index("status")
-            self.db.incidents.create_index("severity")
-
-            # Resources collection indexes
-            self.db.resources.create_index([("location", "2dsphere")])
-            self.db.resources.create_index("status")
-            self.db.resources.create_index("type")
-
-            logger.info("Successfully created MongoDB indexes")
-        except Exception as e:
-            logger.error(f"Failed to create indexes: {str(e)}")
-            raise
-
-    def get_database(self) -> Optional[Database]:
-        """Get the MongoDB database instance."""
-        if self.client is None:
-            logger.warning("Database connection not initialized, attempting to reconnect")
+    def get_collection(self, collection_name: str) -> Collection:
+        """Get a MongoDB collection."""
+        if not self.db:
             self.initialize_connection()
-        return self.db
+        return self.db[collection_name]
 
-    def close_connection(self):
+    def insert_one(self, collection_name: str, document: Dict[str, Any]) -> str:
+        """Insert a single document into a collection."""
+        collection = self.get_collection(collection_name)
+        result = collection.insert_one(document)
+        return str(result.inserted_id)
+
+    def insert_many(self, collection_name: str, documents: List[Dict[str, Any]]) -> List[str]:
+        """Insert multiple documents into a collection."""
+        collection = self.get_collection(collection_name)
+        result = collection.insert_many(documents)
+        return [str(id_) for id_ in result.inserted_ids]
+
+    def find_one(self, collection_name: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Find a single document in a collection."""
+        collection = self.get_collection(collection_name)
+        return collection.find_one(query)
+
+    def find_many(self, collection_name: str, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Find multiple documents in a collection."""
+        collection = self.get_collection(collection_name)
+        return list(collection.find(query))
+
+    def update_one(self, collection_name: str, query: Dict[str, Any], update: Dict[str, Any]) -> int:
+        """Update a single document in a collection."""
+        collection = self.get_collection(collection_name)
+        result = collection.update_one(query, {'$set': update})
+        return result.modified_count
+
+    def update_many(self, collection_name: str, query: Dict[str, Any], update: Dict[str, Any]) -> int:
+        """Update multiple documents in a collection."""
+        collection = self.get_collection(collection_name)
+        result = collection.update_many(query, {'$set': update})
+        return result.modified_count
+
+    def delete_one(self, collection_name: str, query: Dict[str, Any]) -> int:
+        """Delete a single document from a collection."""
+        collection = self.get_collection(collection_name)
+        result = collection.delete_one(query)
+        return result.deleted_count
+
+    def delete_many(self, collection_name: str, query: Dict[str, Any]) -> int:
+        """Delete multiple documents from a collection."""
+        collection = self.get_collection(collection_name)
+        result = collection.delete_many(query)
+        return result.deleted_count
+
+    def close(self) -> None:
         """Close the MongoDB connection."""
-        if self.client is not None:
+        if self.client:
             self.client.close()
             self.client = None
             self.db = None
-            logger.info("MongoDB connection closed")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 # Create a singleton instance
-mongodb_client = MongoDBClient()
+def get_mongodb_client() -> MongoDBClient:
+    return MongoDBClient()
