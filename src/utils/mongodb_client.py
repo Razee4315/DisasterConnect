@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.errors import ConnectionFailure
 
 class MongoDBClient:
     _instance = None
@@ -34,14 +35,22 @@ class MongoDBClient:
             raise ValueError("MongoDB connection details not found in environment variables")
 
         try:
+            # Create MongoDB client
             self.client = MongoClient(mongodb_uri)
-            self.db = self.client[database_name]
-            # Test the connection
+            
+            # Test connection with ping command
             self.client.admin.command('ping')
-        except Exception as e:
+            
+            # Set database after successful connection test
+            self.db = self.client[database_name]
+        except ConnectionFailure as e:
             self.client = None
             self.db = None
             raise Exception(f"Failed to connect to MongoDB: {str(e)}")
+        except Exception as e:
+            self.client = None
+            self.db = None
+            raise Exception(f"An error occurred: {str(e)}")
 
     def get_collection(self, collection_name: str) -> Collection:
         """Get a MongoDB collection."""

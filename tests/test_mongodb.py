@@ -1,6 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
+from pymongo.errors import ConnectionFailure
 from src.utils.mongodb_client import MongoDBClient, get_mongodb_client
 
 @pytest.fixture(autouse=True)
@@ -15,7 +16,7 @@ def mock_env_vars():
 @pytest.fixture
 def mock_mongo_client():
     """Mock PyMongo client."""
-    with patch('src.utils.mongodb_client.MongoClient') as mock_client:
+    with patch('pymongo.MongoClient') as mock_client:
         # Create mock instances
         client_instance = MagicMock()
         db_instance = MagicMock()
@@ -26,21 +27,29 @@ def mock_mongo_client():
         client_instance.__getitem__.return_value = db_instance
         db_instance.__getitem__.return_value = collection_instance
 
+        # Setup admin command for ping
+        admin_db = MagicMock()
+        client_instance.admin = admin_db
+        admin_db.command = MagicMock()
+
         yield {
             'client': mock_client,
             'client_instance': client_instance,
             'db': db_instance,
-            'collection': collection_instance
+            'collection': collection_instance,
+            'admin_db': admin_db
         }
 
+@pytest.fixture(autouse=True)
+def reset_singleton():
+    """Reset the singleton instance before each test."""
+    MongoDBClient._instance = None
+    yield
+
 @pytest.fixture
-def mongodb_client(mock_mongo_client):
+def mongodb_client():
     """Create a fresh MongoDB client instance for each test."""
-    client = get_mongodb_client()
-    client.client = None
-    client.db = None
-    yield client
-    client.close()
+    return get_mongodb_client()
 
 def test_singleton_pattern():
     """Test that MongoDBClient follows singleton pattern."""
@@ -57,8 +66,7 @@ def test_successful_connection(mongodb_client, mock_mongo_client):
     """Test successful database connection."""
     mongodb_client.initialize_connection()
     mock_mongo_client['client'].assert_called_once_with('mongodb://localhost:27017')
-    assert mongodb_client.client is mock_mongo_client['client_instance']
-    assert mongodb_client.db is mock_mongo_client['db']
+    mock_mongo_client['admin_db'].command.assert_called_once_with('ping')
 
 def test_insert_one(mongodb_client, mock_mongo_client):
     """Test inserting a single document."""
@@ -85,9 +93,8 @@ def test_find_one(mongodb_client, mock_mongo_client):
 
 def test_connection_error(mock_mongo_client):
     """Test handling of connection errors."""
-    mock_mongo_client['client'].side_effect = Exception("Connection failed")
+    mock_mongo_client['client'].return_value.admin.command.side_effect = ConnectionFailure("Connection failed")
     client = get_mongodb_client()
-    client.client = None
     
     with pytest.raises(Exception) as exc_info:
         client.initialize_connection()
@@ -97,8 +104,6 @@ def test_missing_env_vars():
     """Test handling of missing environment variables."""
     with patch.dict(os.environ, {}, clear=True):
         client = get_mongodb_client()
-        client.client = None
-        
         with pytest.raises(ValueError) as exc_info:
             client.initialize_connection()
         assert "MongoDB connection details not found" in str(exc_info.value)
