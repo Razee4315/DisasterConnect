@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DisasterConnect Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <style>
+        /* Enhanced styles */
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .layer-control {
+            margin-bottom: 10px;
+        }
+        .layer-control label {
+            display: block;
+            margin: 5px 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .layer-control input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        .search-container {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            width: 300px;
+        }
+        #search-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-results {
+            margin-top: 5px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .search-result-item {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-item:hover {
+            background: #f5f5f5;
+        }
+        .alert-marker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .alert-marker div {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .alert-marker div:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
+        }
+        .alert-marker.pulse div::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+            background-color: inherit;
+            opacity: 0.6;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            70% {
+                transform: scale(2);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+        .alert-popup {
+            min-width: 250px;
+            max-width: 350px;
+            padding: 15px;
+        }
+        .alert-popup h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid;
+            padding-bottom: 5px;
+        }
+        .alert-popup p {
+            margin: 8px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .alert-popup .severity {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .alert-popup .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        .cluster-icon {
+            background: #fff;
+            border: 3px solid #1e88e5;
+            border-radius: 50%;
+            color: #1e88e5;
+            font-weight: bold;
+            text-align: center;
+            line-height: 24px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+            box-shadow: 0 0 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Search location or address...">
+        <div class="search-results" id="search-results"></div>
+    </div>
+    
+    <div class="map-controls">
+        <div class="layer-control">
+            <label>
+                <input type="checkbox" id="alerts-toggle" checked>
+                Show Alerts
+            </label>
+            <label>
+                <input type="checkbox" id="resources-toggle" checked>
+                Show Resources
+            </label>
+            <label>
+                <input type="checkbox" id="heatmap-toggle" checked>
+                Show Heatmap
+            </label>
+            <label>
+                <input type="checkbox" id="clustering-toggle" checked>
+                Enable Clustering
+            </label>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <h4 style="margin: 0 0 8px 0;">Alert Severity</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #dc3545;"></div>
+            Critical
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ffc107;"></div>
+            High
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #17a2b8;"></div>
+            Medium
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #28a745;"></div>
+            Low
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <script>
+        let map;
+        let markers = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: true,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 18,
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                let size = 'small';
+                if (count > 50) size = 'large';
+                else if (count > 10) size = 'medium';
+                
+                return L.divIcon({
+                    html: `<div class="cluster-icon" style="
+                        width: ${size === 'large' ? 40 : size === 'medium' ? 32 : 24}px;
+                        height: ${size === 'large' ? 40 : size === 'medium' ? 32 : 24}px;
+                        line-height: ${size === 'large' ? 40 : size === 'medium' ? 32 : 24}px;
+                        font-size: ${size === 'large' ? 16 : size === 'medium' ? 14 : 12}px;
+                    ">${count}</div>`,
+                    className: '',
+                    iconSize: L.point(40, 40)
+                });
+            }
+        });
+        let heatLayer;
+        let bridge;
+        let alertMarkers = L.layerGroup();
+        let alertCircles = L.layerGroup();
+        let clusteringEnabled = true;
+
+        // Initialize the map
+        function initMap() {
+            // Pakistan's coordinates: [30.3753, 69.3451]
+            map = L.map('map', {
+                center: [30.3753, 69.3451],
+                zoom: 6,
+                minZoom: 5,
+                maxZoom: 18,
+                zoomControl: true,
+                preferCanvas: true, // Better performance for many markers
+                worldCopyJump: true,
+                maxBounds: [
+                    [20.3753, 59.3451], // Southwest coordinates
+                    [40.3753, 79.3451]  // Northeast coordinates
+                ]
+            });
+
+            // Use a more efficient tile layer with better caching
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: ' OpenStreetMap contributors',
+                subdomains: ['a', 'b', 'c'],
+                maxZoom: 18,
+                minZoom: 5,
+                crossOrigin: true,
+                bounds: [
+                    [20.3753, 59.3451], // Southwest coordinates
+                    [40.3753, 79.3451]  // Northeast coordinates
+                ],
+                noWrap: true
+            }).addTo(map);
+            
+            // Add layers with improved performance settings
+            markers.options.chunkedLoading = true;
+            markers.options.chunkInterval = 100;
+            markers.options.chunkDelay = 50;
+            
+            map.addLayer(markers);
+            map.addLayer(alertMarkers);
+            map.addLayer(alertCircles);
+            
+            // Initialize heatmap layer with optimized settings
+            heatLayer = L.heatLayer([], {
+                radius: 25,
+                blur: 15,
+                maxZoom: 10,
+                minOpacity: 0.4,
+                gradient: {
+                    0.4: '#ffffb2',
+                    0.6: '#fecc5c',
+                    0.8: '#fd8d3c',
+                    1.0: '#e31a1c'
+                }
+            }).addTo(map);
+
+            // Add scale control
+            L.control.scale({
+                imperial: false,
+                position: 'bottomright'
+            }).addTo(map);
+
+            // Setup performance optimizations
+            map.on('zoomend moveend', function() {
+                if (map.getZoom() < 8) {
+                    markers.options.disableClusteringAtZoom = false;
+                } else {
+                    markers.options.disableClusteringAtZoom = map.getZoom();
+                }
+            });
+
+            // Set up event handlers
+            setupEventHandlers();
+            
+            // Initialize search with Pakistan boundary bias
+            initSearch();
+        }
+
+        // Set up event handlers
+        function setupEventHandlers() {
+            // Map click handler
+            map.on('click', function(e) {
+                if (bridge) {
+                    bridge.onLocationSelected(e.latlng.lat, e.latlng.lng);
+                }
+            });
+
+            // Map move handler
+            map.on('moveend', function() {
+                if (bridge) {
+                    const center = map.getCenter();
+                    bridge.onLocationUpdated(center.lat, center.lng);
+                }
+            });
+
+            // Layer toggles
+            document.getElementById('alerts-toggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    map.addLayer(alertMarkers);
+                    map.addLayer(alertCircles);
+                } else {
+                    map.removeLayer(alertMarkers);
+                    map.removeLayer(alertCircles);
+                }
+            });
+
+            document.getElementById('resources-toggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    if (clusteringEnabled) {
+                        map.addLayer(markers);
+                    } else {
+                        markers.getLayers().forEach(marker => map.addLayer(marker));
+                    }
+                } else {
+                    if (clusteringEnabled) {
+                        map.removeLayer(markers);
+                    } else {
+                        markers.getLayers().forEach(marker => map.removeLayer(marker));
+                    }
+                }
+            });
+
+            document.getElementById('heatmap-toggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    map.addLayer(heatLayer);
+                } else {
+                    map.removeLayer(heatLayer);
+                }
+            });
+
+            document.getElementById('clustering-toggle').addEventListener('change', function(e) {
+                toggleClustering(e.target.checked);
+            });
+        }
+
+        // Initialize Qt web channel
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            bridge = channel.objects.bridge;
+            console.log("Bridge connected");
+            initMap();
+        });
+
+        // Add incident marker with heatmap point
+        function addIncidentMarker(lat, lng, data) {
+            const marker = L.marker([lat, lng])
+                .bindPopup(`<b>Incident:</b><br>${data.description || 'No description'}`);
+            markers.addLayer(marker);
+            
+            // Add point to heatmap
+            const intensity = data.severity || 1;
+            heatLayer.addLatLng([lat, lng, intensity * 10]);
+        }
+
+        // Add resource marker
+        function addResourceMarker(lat, lng, data) {
+            const marker = L.marker([lat, lng])
+                .bindPopup(`<b>Resource:</b><br>${data.name || 'Unnamed resource'}`);
+            markers.addLayer(marker);
+        }
+
+        // Clear all markers and heatmap
+        function clearMarkers() {
+            markers.clearLayers();
+            heatLayer.setLatLngs([]);
+        }
+
+        // Add alert marker with enhanced styling
+        function addAlertMarker(lat, lng, data) {
+            const icon = L.divIcon({
+                className: `alert-marker ${data.severity === 'Critical' ? 'pulse' : ''}`,
+                html: `<div style="
+                    background-color: ${getAlertColor(data.severity)}; 
+                    width: ${data.severity === 'Critical' ? 24 : 20}px; 
+                    height: ${data.severity === 'Critical' ? 24 : 20}px; 
+                    border-radius: 50%; 
+                    border: 2px solid white; 
+                    box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+                </div>`,
+                iconSize: [24, 24]
+            });
+            
+            const marker = L.marker([lat, lng], {icon: icon})
+                .bindPopup(createAlertPopup(data), {
+                    maxWidth: 350,
+                    className: 'alert-popup-container'
+                });
+            
+            alertMarkers.addLayer(marker);
+            
+            if (data.radius) {
+                updateAlertRadius(lat, lng, data.radius, data);
+            }
+
+            // Add to heatmap if critical or high severity
+            if (data.severity === 'Critical' || data.severity === 'High') {
+                const intensity = data.severity === 'Critical' ? 1.0 : 0.7;
+                heatLayer.addLatLng([lat, lng, intensity]);
+            }
+        }
+        
+        // Update alert radius circle
+        function updateAlertRadius(lat, lng, radius, data) {
+            const circle = L.circle([lat, lng], {
+                radius: radius * 1000, // Convert to meters
+                color: getAlertColor(data.severity),
+                fillColor: getAlertColor(data.severity),
+                fillOpacity: 0.2,
+                weight: 1
+            });
+            
+            alertCircles.addLayer(circle);
+        }
+        
+        // Clear all alerts
+        function clearAlerts() {
+            alertMarkers.clearLayers();
+            alertCircles.clearLayers();
+        }
+        
+        // Add clustered markers
+        function addClusterMarkers(markersData) {
+            markers.clearLayers();
+            
+            markersData.forEach(data => {
+                const marker = L.marker([data.lat, data.lng])
+                    .bindPopup(createMarkerPopup(data));
+                markers.addLayer(marker);
+            });
+        }
+        
+        // Toggle clustering
+        function toggleClustering(enabled) {
+            clusteringEnabled = enabled;
+            if (enabled) {
+                map.addLayer(markers);
+            } else {
+                map.removeLayer(markers);
+                markers.getLayers().forEach(marker => {
+                    map.addLayer(marker);
+                });
+            }
+        }
+        
+        // Get color based on alert severity
+        function getAlertColor(severity) {
+            const colors = {
+                'Critical': '#dc3545',
+                'High': '#ffc107',
+                'Medium': '#17a2b8',
+                'Low': '#28a745'
+            };
+            return colors[severity] || '#6c757d';
+        }
+        
+        // Create enhanced alert popup content
+        function createAlertPopup(data) {
+            const severityClass = data.severity.toLowerCase();
+            return `
+                <div class="alert-popup">
+                    <h3 style="color: ${getAlertColor(data.severity)}; border-color: ${getAlertColor(data.severity)}">
+                        ${data.title}
+                    </h3>
+                    <p>
+                        <span class="severity" style="background-color: ${getAlertColor(data.severity)}">
+                            ${data.severity}
+                        </span>
+                    </p>
+                    <p><strong>Type:</strong> ${data.type}</p>
+                    <p><strong>Area:</strong> ${data.area}</p>
+                    <p><strong>Details:</strong><br>${data.message}</p>
+                    ${data.instructions ? `
+                        <p><strong>Instructions:</strong><br>${data.instructions}</p>
+                    ` : ''}
+                    <p class="timestamp">
+                        <i class="fas fa-clock"></i> 
+                        ${new Date(data.timestamp).toLocaleString()}
+                    </p>
+                </div>
+            `;
+        }
+        
+        // Create marker popup content
+        function createMarkerPopup(data) {
+            return `
+                <div class="alert-popup">
+                    <h3>${data.title}</h3>
+                    <p>${data.description || ''}</p>
+                    ${data.details ? Object.entries(data.details).map(([key, value]) => 
+                        `<p><strong>${key}:</strong> ${value}</p>`
+                    ).join('') : ''}
+                </div>
+            `;
+        }
+
+        // Initialize search functionality with Pakistan bias
+        function initSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            
+            const searchWithBias = debounce(function(query) {
+                if (!query) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+
+                // Add Pakistan bias to the search
+                query = query + ' Pakistan';
+                
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=pk&limit=5`)
+                    .then(response => response.json())
+                    .then(data => {
+                        searchResults.innerHTML = '';
+                        if (data.length > 0) {
+                            searchResults.style.display = 'block';
+                            data.forEach(result => {
+                                const div = document.createElement('div');
+                                div.className = 'search-result-item';
+                                div.textContent = result.display_name;
+                                div.addEventListener('click', () => {
+                                    map.setView([result.lat, result.lon], 13);
+                                    searchResults.style.display = 'none';
+                                    searchInput.value = result.display_name.split(',')[0];
+                                });
+                                searchResults.appendChild(div);
+                            });
+                        } else {
+                            searchResults.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        searchResults.style.display = 'none';
+                    });
+            }, 300);
+
+            searchInput.addEventListener('input', (e) => {
+                searchWithBias(e.target.value);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!searchResults.contains(e.target) && e.target !== searchInput) {
+                    searchResults.style.display = 'none';
+                }
+            });
+        }
+
+        // Debounce helper function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>
