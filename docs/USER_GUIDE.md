@@ -1,161 +1,154 @@
 # DisasterConnect User Guide
 
+Welcome to DisasterConnect! This guide will help you understand and use all the features of our disaster response coordination platform.
+
+## Table of Contents
+- [Getting Started](#getting-started)
+- [Dashboard Overview](#dashboard-overview)
+- [Incident Management](#incident-management)
+- [Resource Management](#resource-management)
+- [Communication System](#communication-system)
+- [Reports and Analytics](#reports-and-analytics)
+- [Troubleshooting](#troubleshooting)
+
 ## Getting Started
 
 ### Installation
-1. Download the latest version of DisasterConnect from the releases page
-2. Run the installer (DisasterConnect_Setup.exe)
-3. Follow the installation wizard instructions
-4. Launch DisasterConnect from the desktop shortcut or start menu
+Follow the installation steps in the [README.md](../README.md).
 
-### First-time Setup
+### First Login
 1. Launch the application
-2. Create an account or sign in with existing credentials
-3. Complete the initial setup wizard
-4. Configure your preferences in the Settings panel
+2. Create an account or log in
+3. Complete your profile setup
 
-## Main Features
+## Dashboard Overview
 
-### Dashboard
+The dashboard provides a quick overview of:
+- Active incidents
+- Available resources
+- Recent communications
+- Task status
 
-#### Overview
-The dashboard provides a comprehensive overview of all disaster management activities:
-- Active incidents summary
-- Resource distribution
-- Key statistics
-- Recent activities
+### Navigation
+- Use the sidebar menu to access different sections
+- Quick action buttons for common tasks
+- Real-time notifications area
 
-#### Customization
-- Rearrange widgets using drag-and-drop
-- Show/hide specific information
-- Change time range for statistics
-- Filter by region or incident type
+## Incident Management
 
-### Incident Management
-
-#### Creating a New Incident
-1. Click "New Incident" button
-2. Fill in required information:
-   - Incident type
-   - Location (click on map or enter coordinates)
+### Creating an Incident
+1. Click "New Incident"
+2. Fill in:
+   - Incident title
+   - Location
    - Severity level
    - Description
-3. Add any additional details
-4. Click "Create"
+   - Required resources
 
-#### Managing Incidents
-1. View and Update Status
-   - Open the incident details
-   - Select new status from dropdown
-   - Add status change notes
-   - Save changes
+### Updating Incidents
+- Edit incident details
+- Update status
+- Add notes
+- Assign resources
 
-2. Resource Assignment
-   - Click "Assign Resources"
-   - Select available resources from list
-   - Specify assignment duration
-   - Confirm assignment
+### Incident Status Tracking
+- Monitor progress
+- View timeline
+- Check resource allocation
 
-3. Documentation
-   - Upload relevant files
-   - Add incident notes
-   - Tag related incidents
+## Resource Management
 
-### Resource Management
-
-#### Adding New Resources
-1. Navigate to Resource Management tab
-2. Click "Add Resource"
-3. Select resource type:
-   - Vehicle
-   - Medical Equipment
-   - Personnel
-   - Other
-4. Fill in resource details:
-   - Name/ID
-   - Specifications
+### Adding Resources
+1. Go to Resources tab
+2. Click "Add New"
+3. Enter:
+   - Resource type
+   - Quantity
    - Location
    - Status
-5. Click "Save"
+   - Specifications
 
-#### Managing Resources
-1. Status Updates
-   - Select resource from list
-   - Update availability status
-   - Add notes if needed
-   - Save changes
+### Resource Allocation
+- Assign to incidents
+- Track usage
+- Monitor availability
+- Schedule maintenance
 
-2. Maintenance Tracking
-   - Schedule maintenance
-   - Log maintenance activities
-   - Set reminders
-   - Update status post-maintenance
+## Communication System
 
-3. Resource Assignment
-   - View current assignments
-   - Check resource availability
-   - Manage assignment duration
-   - Track resource location
+### Sending Messages
+- Direct messaging
+- Team broadcasts
+- Status updates
+- Emergency alerts
 
-### Report Generation
+### Communication Channels
+- Team chat
+- Incident-specific channels
+- Resource coordination
+- Emergency broadcast
 
-#### Creating Reports
-1. Access Reports tab
-2. Select report type:
-   - Incident Summary
-   - Resource Utilization
-   - Status Overview
-   - Custom Report
+## Reports and Analytics
 
-3. Configure Parameters:
-   - Date range
-   - Data categories
-   - Chart types
-   - Export format
+### Generating Reports
+1. Select report type
+2. Choose date range
+3. Select metrics
+4. Generate and export
 
-4. Generate and Export:
-   - Preview report
-   - Make adjustments
-   - Export as PDF/CSV
-   - Share report
-
-#### Analytics Features
-- Trend analysis
-- Resource utilization metrics
-- Response time statistics
-- Custom data visualizations
+### Available Reports
+- Incident summary
+- Resource utilization
+- Response time analytics
+- Team performance
 
 ## Troubleshooting
 
 ### Common Issues
+- Login problems
+- Data sync issues
+- Map display problems
+- Resource tracking errors
 
-#### Login Problems
-1. Forgotten Password
-   - Click "Forgot Password"
-   - Follow email instructions
-   - Reset password
-   - Try logging in again
+### Support
+If you encounter any issues:
+1. Check our [FAQ](FAQ.md)
+2. Contact support: saqlainrazee@gmail.com
+3. Submit an issue on GitHub
 
-2. Connection Issues
-   - Check internet connection
-   - Verify MongoDB connection
-   - Clear cache if needed
-   - Contact support if persistent
+## Tips and Best Practices
 
-#### Data Sync Issues
-1. Check connection status
-2. Verify database configuration
-3. Try manual sync
-4. Contact administrator if unresolved
+1. Regular Updates
+   - Keep the application updated
+   - Check for new features
+   - Review documentation updates
 
-#### Resource Assignment Conflicts
-1. Check resource availability
-2. Verify assignment dates
-3. Review priority settings
-4. Adjust assignments as needed
+2. Data Management
+   - Regular backups
+   - Clean old records
+   - Update resource status
 
-### Support Contact
-For additional support:
-- Email: support@disasterconnect.com
-- Phone: 1-800-DISASTER
-- Hours: 24/7 Emergency Support
+3. Team Coordination
+   - Clear communication
+   - Regular status updates
+   - Proper handover procedures
+
+## Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| New Incident | Ctrl+N |
+| Save | Ctrl+S |
+| Refresh | F5 |
+| Search | Ctrl+F |
+| Help | F1 |
+
+## Additional Resources
+
+- [API Documentation](API.md)
+- [Video Tutorials](https://github.com/Razee4315/DisasterConnect/wiki/Tutorials)
+- [Community Forums](https://github.com/Razee4315/DisasterConnect/discussions)
+
+---
+
+For technical support or feature requests, please visit our [GitHub repository](https://github.com/Razee4315/DisasterConnect).

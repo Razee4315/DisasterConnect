@@ -1,9 +1,13 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
-                             QLabel, QPushButton, QFrame)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
+                             QLabel, QPushButton, QFrame, QGroupBox, QCheckBox)
+
 from ..utils.mongodb_client import mongodb_client
 from ..utils.map_client import map_client
+
 import json
+import os
 from bson import ObjectId
 from datetime import datetime
 
@@ -28,6 +32,60 @@ class DashboardWidget(QWidget):
         left_panel = QFrame()
         left_panel.setFrameStyle(QFrame.StyledPanel)
         left_layout = QVBoxLayout(left_panel)
+        
+        # Add logo at the top
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+                               'resources', 'images', 'logo_new.svg')
+        if os.path.exists(logo_path):
+            logo_label = QLabel()
+            logo_pixmap = QPixmap(logo_path)
+            scaled_pixmap = logo_pixmap.scaled(60, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo_label.setPixmap(scaled_pixmap)
+            logo_label.setAlignment(Qt.AlignCenter)
+            left_layout.addWidget(logo_label)
+            
+        # Add refresh button at the top
+        refresh_button = QPushButton("Refresh Dashboard")
+        refresh_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        refresh_button.clicked.connect(self.refresh_data)
+        left_layout.addWidget(refresh_button)
+        
+        # Add map controls section
+        map_controls_group = QGroupBox("Map Controls")
+        map_controls_layout = QVBoxLayout()
+        
+        # Clustering toggle
+        self.cluster_checkbox = QCheckBox("Enable Clustering")
+        self.cluster_checkbox.setChecked(True)
+        self.cluster_checkbox.stateChanged.connect(self.toggle_clustering)
+        map_controls_layout.addWidget(self.cluster_checkbox)
+        
+        # Heatmap toggle
+        self.heatmap_checkbox = QCheckBox("Show Heatmap")
+        self.heatmap_checkbox.setChecked(False)
+        self.heatmap_checkbox.stateChanged.connect(self.toggle_heatmap)
+        map_controls_layout.addWidget(self.heatmap_checkbox)
+        
+        # Alert radius toggle
+        self.alert_radius_checkbox = QCheckBox("Show Alert Radius")
+        self.alert_radius_checkbox.setChecked(True)
+        self.alert_radius_checkbox.stateChanged.connect(self.toggle_alert_radius)
+        map_controls_layout.addWidget(self.alert_radius_checkbox)
+        
+        map_controls_group.setLayout(map_controls_layout)
+        left_layout.addWidget(map_controls_group)
         
         # Statistics
         stats_label = QLabel("Statistics")
@@ -177,3 +235,97 @@ class DashboardWidget(QWidget):
                 return parent
             parent = parent.parent()
         return None
+    
+    def toggle_clustering(self, state):
+        """Toggle marker clustering"""
+        self.map_widget.toggle_clustering(state == Qt.Checked)
+        self.refresh_data()
+    
+    def toggle_heatmap(self, state):
+        """Toggle heatmap layer"""
+        try:
+            if state == Qt.Checked:
+                print("Enabling heatmap...")
+                # Prepare heatmap data from incidents
+                heatmap_points = []
+                incidents = list(mongodb_client.db.incidents.find()) or []
+                
+                if not incidents:
+                    print("No incidents found for heatmap")
+                    self.heatmap_checkbox.setChecked(False)
+                    return
+                
+                for incident in incidents:
+                    location = incident.get("location", {})
+                    severity = incident.get("severity", "Low")
+                    status = incident.get("status", "Active")
+                    
+                    if location and "lat" in location and "lng" in location:
+                        # Base intensity on severity
+                        base_intensity = {
+                            "Critical": 1.0,
+                            "High": 0.7,
+                            "Medium": 0.5,
+                            "Low": 0.3
+                        }.get(severity, 0.3)
+                        
+                        # Reduce intensity for resolved incidents
+                        if status == "Resolved":
+                            base_intensity *= 0.5
+                        
+                        heatmap_points.append({
+                            "lat": location["lat"],
+                            "lng": location["lng"],
+                            "intensity": base_intensity
+                        })
+                
+                if heatmap_points:
+                    print(f"Updating heatmap with {len(heatmap_points)} points")
+                    self.map_widget.update_heatmap(heatmap_points)
+                else:
+                    print("No valid points for heatmap")
+                    self.heatmap_checkbox.setChecked(False)
+            else:
+                print("Disabling heatmap...")
+                self.map_widget.update_heatmap([])
+                
+        except Exception as e:
+            print(f"Error updating heatmap: {e}")
+            self.heatmap_checkbox.setChecked(False)
+    
+    def toggle_alert_radius(self, state):
+        """Toggle alert radius circles"""
+        try:
+            incidents = list(mongodb_client.db.incidents.find()) or []
+            for incident in incidents:
+                location = incident.get("location", {})
+                if location and "lat" in location and "lng" in location:
+                    severity = incident.get("severity", "Low")
+                    # Adjust radius based on severity
+                    radius = {
+                        "Critical": 5000,  # 5km
+                        "High": 3000,      # 3km
+                        "Medium": 2000,    # 2km
+                        "Low": 1000        # 1km
+                    }.get(severity, 1000)
+                    
+                    if state == Qt.Checked:
+                        self.map_widget.update_alert_radius(
+                            location["lat"],
+                            location["lng"],
+                            radius,
+                            {
+                                "severity": severity,
+                                "title": incident.get("title", "Untitled"),
+                                "type": incident.get("type", "Unknown")
+                            }
+                        )
+                    else:
+                        self.map_widget.update_alert_radius(
+                            location["lat"],
+                            location["lng"],
+                            0,  # 0 radius to hide
+                            {}
+                        )
+        except Exception as e:
+            print(f"Error updating alert radius: {e}")

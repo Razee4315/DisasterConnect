@@ -76,12 +76,25 @@ class MapWidget(QWebEngineView):
         """Handle map load completion"""
         if ok:
             print("Map loaded successfully")
+            if self.selection_mode:
+                print("Map in selection mode - click to select location")
+                # Enable click handling for location selection
+                self.page().runJavaScript("console.log('Selection mode enabled');")
         else:
             print("Error loading map")
             
     def on_location_selected(self, lat, lng):
         """Handle location selection"""
-        print(f"Location selected: {lat}, {lng}")
+        print(f"Location selected in MapWidget: {lat}, {lng}")
+        if self.selection_mode:
+            # Clear any existing markers
+            self.page().runJavaScript("clearMarkers();")
+            # Add a temporary marker at the selected location
+            self.page().runJavaScript(f"""
+                let marker = L.marker([{lat}, {lng}]).addTo(map);
+                setTimeout(() => map.removeLayer(marker), 2000);  // Remove after 2 seconds
+            """)
+        # Emit the signal
         self.location_selected.emit(lat, lng)
         
     def on_location_updated(self, lat, lng):

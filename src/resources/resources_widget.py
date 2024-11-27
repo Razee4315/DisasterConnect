@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QDialog, QLabel,
-                             QLineEdit, QComboBox, QSpinBox, QTextEdit)
+                             QLineEdit, QComboBox, QSpinBox, QTextEdit, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 from ..utils.map_client import map_client
 from ..utils.mongodb_client import mongodb_client
@@ -112,6 +112,8 @@ class ResourceDialog(QDialog):
         }
 
 class ResourcesWidget(QWidget):
+    resource_deleted = pyqtSignal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
@@ -127,15 +129,15 @@ class ResourcesWidget(QWidget):
         
         # Resources table
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Name", "Type", "Status", "Capacity", "Location", "Created At"])
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels(["ID", "Name", "Type", "Status", "Location", "Capacity", "Actions"])
         layout.addWidget(self.table)
         
         # Map widget
         self.map_widget = map_client.create_map_widget()
         layout.addWidget(self.map_widget)
         
-        self.refresh_data()
+        self.refresh_table()
         
     def add_resource(self):
         """Open dialog to add a new resource"""
@@ -146,59 +148,106 @@ class ResourcesWidget(QWidget):
                 # Save to database
                 result = mongodb_client.db.resources.insert_one(resource_data)
                 if result.inserted_id:
-                    self.refresh_data()
+                    self.refresh_table()
                 
-    def refresh_data(self):
-        """Refresh the resources data"""
+    def refresh_table(self):
+        """Refresh the resources table"""
         try:
-            # Clear existing data
+            # Clear the table
             self.table.setRowCount(0)
+            
+            # Get all resources
+            resources = mongodb_client.db.resources.find()
+            
+            for resource in resources:
+                row = self.table.rowCount()
+                self.table.insertRow(row)
+                
+                # Create delete button
+                delete_btn = QPushButton("Delete")
+                delete_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #ff4444;
+                        color: white;
+                        border: none;
+                        padding: 5px;
+                        border-radius: 3px;
+                    }
+                    QPushButton:hover {
+                        background-color: #ff0000;
+                    }
+                """)
+                delete_btn.clicked.connect(lambda checked, id=str(resource['_id']): self.delete_resource(id))
+                
+                # Set table items
+                self.table.setItem(row, 0, QTableWidgetItem(str(resource['_id'])))
+                self.table.setItem(row, 1, QTableWidgetItem(resource.get('name', '')))
+                self.table.setItem(row, 2, QTableWidgetItem(resource.get('type', '')))
+                self.table.setItem(row, 3, QTableWidgetItem(resource.get('status', '')))
+                
+                # Handle location
+                location = resource.get('location', {})
+                if location and 'lat' in location and 'lng' in location:
+                    self.table.setItem(row, 4, QTableWidgetItem(f"({location['lat']:.6f}, {location['lng']:.6f})"))
+                else:
+                    self.table.setItem(row, 4, QTableWidgetItem('No location'))
+                
+                self.table.setItem(row, 5, QTableWidgetItem(str(resource.get('capacity', ''))))
+                self.table.setCellWidget(row, 6, delete_btn)
+                
+        except Exception as e:
+            print(f"Error refreshing resources table: {e}")
+
+    def refresh_data(self):
+        """Compatibility method that refreshes both table and map"""
+        try:
+            # Clear map markers
             self.map_widget.clear_markers()
             
-            # Fetch resources from database
-            resources = list(mongodb_client.db.resources.find()) or []
+            # Refresh table
+            self.refresh_table()
             
-            # Update table and map
+            # Update map markers
+            resources = mongodb_client.db.resources.find()
             for resource in resources:
-                try:
-                    row = self.table.rowCount()
-                    self.table.insertRow(row)
-                    
-                    # Add to table
-                    self.table.setItem(row, 0, QTableWidgetItem(resource.get("name", "Untitled")))
-                    self.table.setItem(row, 1, QTableWidgetItem(resource.get("type", "Unknown")))
-                    self.table.setItem(row, 2, QTableWidgetItem(resource.get("status", "Unknown")))
-                    self.table.setItem(row, 3, QTableWidgetItem(str(resource.get("capacity", 0))))
-                    
-                    # Handle location data safely
-                    location = resource.get("location", {})
-                    if location and "lat" in location and "lng" in location:
-                        self.table.setItem(row, 4, QTableWidgetItem(f"({location['lat']:.6f}, {location['lng']:.6f})"))
-                        
-                        # Add to map
-                        self.map_widget.add_resource_marker(
-                            location["lat"],
-                            location["lng"],
-                            {
-                                "name": resource.get("name", "Untitled"),
-                                "type": resource.get("type", "Unknown"),
-                                "status": resource.get("status", "Unknown"),
-                                "capacity": resource.get("capacity", 0)
-                            }
-                        )
-                    else:
-                        self.table.setItem(row, 4, QTableWidgetItem("No location"))
-                    
-                    # Handle date safely
-                    created_at = resource.get("created_at")
-                    if created_at:
-                        self.table.setItem(row, 5, QTableWidgetItem(created_at.strftime("%Y-%m-%d %H:%M")))
-                    else:
-                        self.table.setItem(row, 5, QTableWidgetItem("Unknown"))
-                        
-                except Exception as e:
-                    print(f"Error processing resource: {e}")
-                    continue
+                location = resource.get("location", {})
+                if location and "lat" in location and "lng" in location:
+                    self.map_widget.add_resource_marker(
+                        location["lat"],
+                        location["lng"],
+                        {
+                            "name": resource.get("name", "Untitled"),
+                            "type": resource.get("type", "Unknown"),
+                            "status": resource.get("status", "Unknown"),
+                            "capacity": resource.get("capacity", 0)
+                        }
+                    )
+        except Exception as e:
+            print(f"Error in refresh_data: {e}")
+
+    def delete_resource(self, resource_id):
+        """Delete a resource"""
+        try:
+            reply = QMessageBox.question(
+                self,
+                'Delete Resource',
+                'Are you sure you want to delete this resource?',
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                from bson import ObjectId
+                result = mongodb_client.db.resources.delete_one({'_id': ObjectId(resource_id)})
+                if result.deleted_count > 0:
+                    print(f"Successfully deleted resource {resource_id}")
+                    self.refresh_table()
+                    # Emit signal to refresh map
+                    self.resource_deleted.emit()
+                else:
+                    print(f"Failed to delete resource {resource_id}")
+                    QMessageBox.warning(self, 'Error', 'Failed to delete resource')
                     
         except Exception as e:
-            print(f"Error refreshing resources data: {e}")
+            print(f"Error deleting resource: {e}")
+            QMessageBox.warning(self, 'Error', f'Error deleting resource: {str(e)}')

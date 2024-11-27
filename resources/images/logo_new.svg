@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="#2C3E50"/>
+  
+  <!-- DC Letters -->
+  <path d="M150 180 Q150 150 180 150 L240 150 Q270 150 270 180 L270 330 Q270 360 240 360 L180 360 Q150 360 150 330 Z" 
+        fill="#3498DB" stroke="#ECF0F1" stroke-width="8"/>
+  <path d="M290 180 Q290 150 320 150 L380 150 Q410 150 410 180 L410 330 Q410 360 380 360 L320 360 Q290 360 290 330 Z" 
+        fill="#E74C3C" stroke="#ECF0F1" stroke-width="8"/>
+  
+  <!-- Connection Lines -->
+  <line x1="220" y1="200" x2="340" y2="200" stroke="#ECF0F1" stroke-width="8"/>
+  <line x1="220" y1="310" x2="340" y2="310" stroke="#ECF0F1" stroke-width="8"/>
+  
+  <!-- Emergency Cross -->
+  <rect x="238" y="238" width="36" height="36" fill="#2ECC71" transform="rotate(45, 256, 256)"/>
+</svg>

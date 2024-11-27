@@ -44,10 +44,32 @@
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            attribution: 'OpenStreetMap contributors'
         }).addTo(map);
         
-        var markers = L.layerGroup().addTo(map);
+        // Initialize layers
+        var markers = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        }).addTo(map);
+        
+        var heatLayer = L.heatLayer([], {
+            radius: 25,
+            blur: 15,
+            maxZoom: 10,
+            minOpacity: 0.4,
+            gradient: {
+                0.4: '#ffffb2',
+                0.6: '#fecc5c',
+                0.8: '#fd8d3c',
+                1.0: '#e31a1c'
+            }
+        }).addTo(map);
+        
+        var alertCircles = L.layerGroup().addTo(map);
         var selectedMarker = null;
         window.selectionMode = false;
 
@@ -142,6 +164,71 @@
             } else {
                 map.scrollWheelZoom.enable();
             }
+        }
+        
+        function toggleClustering(enabled) {
+            map.removeLayer(markers);
+            if (enabled) {
+                markers = L.markerClusterGroup({
+                    chunkedLoading: true,
+                    maxClusterRadius: 50,
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: false,
+                    zoomToBoundsOnClick: true
+                });
+            } else {
+                markers = L.layerGroup();
+            }
+            map.addLayer(markers);
+            // Re-add all existing markers
+            refreshMarkers();
+        }
+        
+        function updateHeatmap(points) {
+            heatLayer.setLatLngs(points.map(p => [p.lat, p.lng, p.intensity]));
+        }
+        
+        function updateAlertRadius(lat, lng, radius, data) {
+            // Remove existing circle for this location
+            alertCircles.eachLayer((layer) => {
+                if (layer.getLatLng().lat === lat && layer.getLatLng().lng === lng) {
+                    alertCircles.removeLayer(layer);
+                }
+            });
+            
+            if (radius > 0) {
+                const circle = L.circle([lat, lng], {
+                    radius: radius,
+                    color: getAlertColor(data.severity),
+                    fillColor: getAlertColor(data.severity),
+                    fillOpacity: 0.2,
+                    weight: 1
+                }).bindPopup(`
+                    <b>${data.title}</b><br>
+                    Type: ${data.type}<br>
+                    Severity: ${data.severity}<br>
+                    Radius: ${radius/1000}km
+                `);
+                alertCircles.addLayer(circle);
+            }
+        }
+        
+        function getAlertColor(severity) {
+            switch (severity) {
+                case 'Critical': return '#e31a1c';
+                case 'High': return '#fd8d3c';
+                case 'Medium': return '#fecc5c';
+                case 'Low': return '#ffffb2';
+                default: return '#808080';
+            }
+        }
+        
+        function refreshMarkers() {
+            // Re-add all markers from current data
+            // This will be called when clustering is toggled
+            markers.getLayers().forEach(marker => {
+                markers.addLayer(marker);
+            });
         }
     </script>
 </body>

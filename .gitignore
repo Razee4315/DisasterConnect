@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -23,16 +22,66 @@ wheels/
 
 # Virtual Environment
 venv/
+env/
 ENV/
+.env
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.project
+.pydevproject
+.settings/
 
-# Project specific
-.env
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Logs
 *.log
+logs/
+log/
+
+# Database
 *.db
+*.sqlite3
+*.sqlite
+
+# Compiled files
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
+
+# Documentation
+docs/_build/
+docs/api/
+
+# Cache
+.cache/
+.mypy_cache/
+
+# Local development
+local_settings.py
+db.sqlite3
+media/
+
+# Secrets
+.env
+.env.*
+!.env.example
+secrets.yaml
+credentials.json
+
+# System Files
 .DS_Store
+Thumbs.db

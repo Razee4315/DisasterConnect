@@ -1,50 +1,131 @@
-# Contributing to DisasterConnect
+# Contributing to DisasterConnect 🚀
 
-We love your input! We want to make contributing to DisasterConnect as easy and transparent as possible, whether it's:
+First off, thanks for taking the time to contribute! 🎉👍
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+The following is a set of guidelines for contributing to DisasterConnect. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
-## We Develop with Github
-We use Github to host code, to track issues and feature requests, as well as accept pull requests.
+## 📝 Code of Conduct
 
-## We Use [Github Flow](https://guides.github.com/introduction/flow/index.html)
-Pull requests are the best way to propose changes to the codebase. We actively welcome your pull requests:
+This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
+## 🌟 How Can I Contribute?
+
+### 🐛 Reporting Bugs
+
+- Use the [GitHub issue tracker](https://github.com/Razee4315/DisasterConnect/issues)
+- Check if the bug has already been reported
+- Use the bug report template when creating an issue
+- Include as many details as possible:
+  - Steps to reproduce
+  - Expected behavior
+  - Actual behavior
+  - Screenshots if applicable
+  - Your environment details
+
+### 💡 Suggesting Enhancements
+
+- Use the [feature request template](https://github.com/Razee4315/DisasterConnect/issues/new?template=feature_request.md)
+- Provide a clear and detailed explanation of the feature
+- Include any relevant examples or mockups
+
+### 🔧 Pull Requests
+
+1. Fork the repo and create your branch from `main`
+2. If you've added code that should be tested, add tests
+3. If you've changed APIs, update the documentation
+4. Ensure the test suite passes
+5. Make sure your code follows our style guidelines
 6. Issue that pull request!
 
-## Any contributions you make will be under the MIT Software License
-In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.
+## 💻 Development Process
 
-## Report bugs using Github's [issue tracker](https://github.com/yourusername/DisasterConnect/issues)
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/yourusername/DisasterConnect/issues/new); it's that easy!
+1. Set up your development environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # Development dependencies
+```
 
-## Write bug reports with detail, background, and sample code
+2. Create a new branch:
+```bash
+git checkout -b feature/your-feature-name
+```
 
-**Great Bug Reports** tend to have:
+3. Make your changes:
+- Write meaningful commit messages
+- Follow our coding standards
+- Add tests for new features
+- Update documentation as needed
 
-- A quick summary and/or background
-- Steps to reproduce
-  - Be specific!
-  - Give sample code if you can.
-- What you expected would happen
-- What actually happens
-- Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
+4. Push your changes:
+```bash
+git push origin feature/your-feature-name
+```
 
-## Use a Consistent Coding Style
+## 📋 Style Guidelines
 
-* Use 4 spaces for indentation rather than tabs
-* Use docstrings for all functions and classes
-* Keep line length to 120 characters or less
-* Follow PEP 8 guidelines
+### 💭 Git Commit Messages
 
-## License
-By contributing, you agree that your contributions will be licensed under its MIT License.
+- Use the present tense ("Add feature" not "Added feature")
+- Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
+- Limit the first line to 72 characters or less
+- Reference issues and pull requests liberally after the first line
+
+### 🐍 Python Style Guide
+
+- Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/)
+- Use meaningful variable names
+- Add docstrings to all functions and classes
+- Keep functions focused and small
+- Use type hints where possible
+- Maximum line length: 120 characters
+
+### 📚 Documentation Style
+
+- Use Markdown for documentation
+- Include code examples where relevant
+- Keep language clear and concise
+- Update README.md if needed
+- Document all new features
+
+## 🧪 Testing
+
+- Write unit tests for new features
+- Ensure all tests pass before submitting PR
+- Use pytest for testing
+- Aim for high test coverage
+
+## ⚡ Performance Guidelines
+
+- Consider performance implications of changes
+- Profile code when necessary
+- Document any performance-critical code
+- Consider resource constraints
+
+## 📦 Dependency Management
+
+- Only add necessary dependencies
+- Keep dependencies up to date
+- Document new dependencies in README
+- Consider compatibility across platforms
+
+## 🤝 Community
+
+- Join our [Discussions](https://github.com/Razee4315/DisasterConnect/discussions)
+- Help others in the community
+- Share your ideas and feedback
+- Be respectful and constructive
+
+## ❓ Questions?
+
+Feel free to contact the maintainer:
+- Saqlain Razee (saqlainrazee@gmail.com)
+
+## 📜 License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+---
+
+Thank you for contributing to DisasterConnect! 🙏

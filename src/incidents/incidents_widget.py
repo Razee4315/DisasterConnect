@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QTableWidget, QTableWidgetItem, QDialog, QLabel,
-                             QLineEdit, QComboBox, QTextEdit)
+                             QLineEdit, QComboBox, QTextEdit, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 from ..utils.map_client import map_client
 from ..utils.mongodb_client import mongodb_client
@@ -112,6 +112,8 @@ class IncidentDialog(QDialog):
         }
 
 class IncidentsWidget(QWidget):
+    incident_deleted = pyqtSignal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
@@ -127,8 +129,8 @@ class IncidentsWidget(QWidget):
         
         # Incidents table
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Title", "Type", "Severity", "Status", "Location", "Created At"])
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels(["ID", "Title", "Type", "Severity", "Status", "Location", "Actions"])
         layout.addWidget(self.table)
         
         # Map widget
@@ -164,16 +166,33 @@ class IncidentsWidget(QWidget):
                     row = self.table.rowCount()
                     self.table.insertRow(row)
                     
-                    # Add to table
-                    self.table.setItem(row, 0, QTableWidgetItem(incident.get("title", "Untitled")))
-                    self.table.setItem(row, 1, QTableWidgetItem(incident.get("type", "Unknown")))
-                    self.table.setItem(row, 2, QTableWidgetItem(incident.get("severity", "Unknown")))
-                    self.table.setItem(row, 3, QTableWidgetItem(incident.get("status", "Unknown")))
+                    # Create delete button
+                    delete_btn = QPushButton("Delete")
+                    delete_btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: #ff4444;
+                            color: white;
+                            border: none;
+                            padding: 5px;
+                            border-radius: 3px;
+                        }
+                        QPushButton:hover {
+                            background-color: #ff0000;
+                        }
+                    """)
+                    delete_btn.clicked.connect(lambda checked, id=str(incident['_id']): self.delete_incident(id))
+                    
+                    # Set table items
+                    self.table.setItem(row, 0, QTableWidgetItem(str(incident['_id'])))
+                    self.table.setItem(row, 1, QTableWidgetItem(incident.get("title", "Untitled")))
+                    self.table.setItem(row, 2, QTableWidgetItem(incident.get("type", "Unknown")))
+                    self.table.setItem(row, 3, QTableWidgetItem(incident.get("severity", "Unknown")))
+                    self.table.setItem(row, 4, QTableWidgetItem(incident.get("status", "Unknown")))
                     
                     # Handle location data safely
                     location = incident.get("location", {})
                     if location and "lat" in location and "lng" in location:
-                        self.table.setItem(row, 4, QTableWidgetItem(f"({location['lat']:.6f}, {location['lng']:.6f})"))
+                        self.table.setItem(row, 5, QTableWidgetItem(f"({location['lat']:.6f}, {location['lng']:.6f})"))
                         
                         # Add to map
                         self.map_widget.add_incident_marker(
@@ -187,18 +206,40 @@ class IncidentsWidget(QWidget):
                             }
                         )
                     else:
-                        self.table.setItem(row, 4, QTableWidgetItem("No location"))
+                        self.table.setItem(row, 5, QTableWidgetItem("No location"))
                     
-                    # Handle date safely
-                    created_at = incident.get("created_at")
-                    if created_at:
-                        self.table.setItem(row, 5, QTableWidgetItem(created_at.strftime("%Y-%m-%d %H:%M")))
-                    else:
-                        self.table.setItem(row, 5, QTableWidgetItem("Unknown"))
-                        
+                    self.table.setCellWidget(row, 6, delete_btn)
+                    
                 except Exception as e:
                     print(f"Error processing incident: {e}")
                     continue
                     
         except Exception as e:
             print(f"Error refreshing incidents data: {e}")
+            
+    def delete_incident(self, incident_id):
+        """Delete an incident"""
+        try:
+            reply = QMessageBox.question(
+                self,
+                'Delete Incident',
+                'Are you sure you want to delete this incident?',
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                from bson import ObjectId
+                result = mongodb_client.db.incidents.delete_one({'_id': ObjectId(incident_id)})
+                if result.deleted_count > 0:
+                    print(f"Successfully deleted incident {incident_id}")
+                    self.refresh_data()
+                    # Emit signal to refresh map
+                    self.incident_deleted.emit()
+                else:
+                    print(f"Failed to delete incident {incident_id}")
+                    QMessageBox.warning(self, 'Error', 'Failed to delete incident')
+                    
+        except Exception as e:
+            print(f"Error deleting incident: {e}")
+            QMessageBox.warning(self, 'Error', f'Error deleting incident: {str(e)}')
