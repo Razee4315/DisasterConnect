@@ -106,11 +106,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Saqlain Razee** - [Razee4315](https://github.com/Razee4315)
 
-## 🙏 Acknowledgments
-
-- All our amazing contributors
-- The open-source community
-- Libraries and tools that make this project possible
-
 ---
 ⭐ Star this repository if you find it helpful!
